@@ -1,0 +1,6 @@
+{
+  "name": "Galactic Tycoons",
+  "description": "Mobile companion and game client for Galactic Tycoons with real-time player trade alerts, exchange market tracking, fleet logistics, and on-the-go corporation management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
