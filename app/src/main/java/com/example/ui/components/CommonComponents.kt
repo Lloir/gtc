@@ -50,6 +50,7 @@ import java.util.Locale
 fun SciFiCard(
     modifier: Modifier = Modifier,
     borderColor: Color = SpaceCardBorder,
+    containerColor: Color = SpaceCardBg,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
@@ -58,7 +59,7 @@ fun SciFiCard(
             onClick = onClick,
             modifier = modifier.border(1.dp, borderColor, RoundedCornerShape(16.dp)),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = SpaceCardBg)
+            colors = CardDefaults.cardColors(containerColor = containerColor)
         ) {
             content()
         }
@@ -66,7 +67,7 @@ fun SciFiCard(
         Card(
             modifier = modifier.border(1.dp, borderColor, RoundedCornerShape(16.dp)),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = SpaceCardBg)
+            colors = CardDefaults.cardColors(containerColor = containerColor)
         ) {
             content()
         }

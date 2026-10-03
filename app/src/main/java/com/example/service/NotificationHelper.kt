@@ -51,6 +51,20 @@ object NotificationHelper {
         message: String,
         channelId: String = CHANNEL_TRADE_ALERTS
     ) {
+        val prefs = context.getSharedPreferences("galactic_tycoons_prefs", Context.MODE_PRIVATE)
+        val notificationsEnabled = prefs.getBoolean("pref_notifications_enabled", true)
+        if (!notificationsEnabled) {
+            return
+        }
+
+        if (channelId == CHANNEL_TRADE_ALERTS && !prefs.getBoolean("pref_trade_notifications", true)) {
+            return
+        }
+
+        if (channelId == CHANNEL_FLEET_UPDATES && !prefs.getBoolean("pref_fleet_notifications", true)) {
+            return
+        }
+
         // Check permission on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionStatus = ContextCompat.checkSelfPermission(

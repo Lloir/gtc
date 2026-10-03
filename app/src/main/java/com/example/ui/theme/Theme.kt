@@ -9,18 +9,22 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+val LocalIsDarkTheme = staticCompositionLocalOf { true }
+
 // Deep Space Sci-Fi Modern Material 3 Color Scheme
 val GalacticDarkColorScheme = darkColorScheme(
-    primary = CyanElectric,
+    primary = DarkCyanElectric,
     onPrimary = Color(0xFF00363D),
     primaryContainer = PrimaryContainerDark,
     onPrimaryContainer = OnPrimaryContainerDark,
     inversePrimary = CyanDark,
 
-    secondary = GoldAccent,
+    secondary = DarkGoldAccent,
     onSecondary = Color(0xFF3F2E00),
     secondaryContainer = SecondaryContainerDark,
     onSecondaryContainer = OnSecondaryContainerDark,
@@ -30,13 +34,13 @@ val GalacticDarkColorScheme = darkColorScheme(
     tertiaryContainer = TertiaryContainerDark,
     onTertiaryContainer = OnTertiaryContainerDark,
 
-    background = SpaceBlack,
-    onBackground = TextPrimary,
+    background = DarkSpaceBlack,
+    onBackground = DarkTextPrimary,
 
-    surface = SpaceDark,
-    onSurface = TextPrimary,
-    surfaceVariant = SpaceCardBg,
-    onSurfaceVariant = TextSecondary,
+    surface = DarkSpaceDark,
+    onSurface = DarkTextPrimary,
+    surfaceVariant = DarkSpaceCardBg,
+    onSurfaceVariant = DarkTextSecondary,
 
     surfaceDim = DarkSurfaceDim,
     surfaceBright = DarkSurfaceBright,
@@ -50,8 +54,8 @@ val GalacticDarkColorScheme = darkColorScheme(
     outlineVariant = DarkOutlineVariant,
     scrim = DarkScrim,
 
-    inverseSurface = TextPrimary,
-    inverseOnSurface = SpaceDark,
+    inverseSurface = DarkTextPrimary,
+    inverseOnSurface = DarkSpaceDark,
 
     error = LossRed,
     onError = Color.White,
@@ -64,6 +68,10 @@ val GalacticLightColorScheme = lightColorScheme(
     onPrimary = LightOnPrimary,
     primaryContainer = LightPrimaryContainer,
     onPrimaryContainer = LightOnPrimaryContainer,
+    secondary = LightGoldAccent,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFEF3C7),
+    onSecondaryContainer = Color(0xFF78350F),
     background = LightBackground,
     onBackground = LightOnBackground,
     surface = LightSurface,
@@ -90,12 +98,14 @@ fun GalacticTycoonsTheme(
         else -> GalacticLightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = Shapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalIsDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            shapes = Shapes,
+            content = content
+        )
+    }
 }
 
 @Composable

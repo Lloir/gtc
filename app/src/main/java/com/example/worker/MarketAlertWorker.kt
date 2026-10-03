@@ -19,6 +19,12 @@ class MarketAlertWorker(
 
     override suspend fun doWork(): Result {
         Log.d("MarketAlertWorker", "Checking market alerts in background...")
+        val prefs = applicationContext.getSharedPreferences("galactic_tycoons_prefs", android.content.Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("pref_notifications_enabled", true)) {
+            Log.d("MarketAlertWorker", "Notifications disabled in settings. Skipping check.")
+            return Result.success()
+        }
+
         val db = AppDatabase.getInstance(applicationContext)
         val repository = GalacticRepository(db)
 

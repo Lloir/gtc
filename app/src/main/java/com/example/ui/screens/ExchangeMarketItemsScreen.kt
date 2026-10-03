@@ -380,7 +380,7 @@ fun ExchangeMarketItemsScreen(
 
         // Quick Alert Notice Strip
         Surface(
-            color = Color(0x15FFD54F),
+            color = GoldAccent.copy(alpha = 0.12f),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -716,6 +716,7 @@ fun ExchangeMarketItemsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(SpaceCardBg, RoundedCornerShape(12.dp))
+                                .border(1.dp, SpaceCardBorder, RoundedCornerShape(12.dp))
                                 .padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
@@ -736,11 +737,28 @@ fun ExchangeMarketItemsScreen(
                             }
                         }
 
-                        // 30-Day Historical Price Chart
-                        if (details.priceHistory.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(14.dp))
-                            com.example.ui.components.PriceHistoryChart(history = details.priceHistory)
+                        // D3 Historical Price Trend Component
+                        val d3History = if (details.priceHistory.isNotEmpty()) {
+                            details.priceHistory
+                        } else {
+                            listOf(
+                                com.example.data.network.PExchangePriceHistoryModel(
+                                    date = "24h Avg",
+                                    avgPrice = if (details.avgPrice > 0) details.avgPrice else details.currentPrice,
+                                    qtySold = 1000
+                                ),
+                                com.example.data.network.PExchangePriceHistoryModel(
+                                    date = "Current",
+                                    avgPrice = details.currentPrice,
+                                    qtySold = details.totalQtyAvailable
+                                )
+                            )
                         }
+                        Spacer(modifier = Modifier.height(14.dp))
+                        com.example.ui.components.D3PriceTrendChart(
+                            history = d3History,
+                            matName = details.matName
+                        )
 
                         Spacer(modifier = Modifier.height(14.dp))
 

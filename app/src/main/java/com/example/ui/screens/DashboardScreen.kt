@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -73,7 +74,8 @@ fun DashboardScreen(
     onNavigateToFleet: () -> Unit,
     onNavigateToAlerts: () -> Unit,
     onNavigateToGame: () -> Unit,
-    onNavigateToCalculator: () -> Unit
+    onNavigateToCalculator: () -> Unit,
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val commodities by viewModel.commodities.collectAsState()
     val alerts by viewModel.tradeAlerts.collectAsState()
@@ -121,7 +123,7 @@ fun DashboardScreen(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LiveStatusPulse(isActive = isLiveActive)
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     IconButton(
                         onClick = { viewModel.fetchLiveExchangePrices() },
                         modifier = Modifier
@@ -133,7 +135,22 @@ fun DashboardScreen(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refresh",
                             tint = CyanElectric,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    IconButton(
+                        onClick = onNavigateToSettings,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(SpaceSurfaceLight, RoundedCornerShape(10.dp))
+                            .testTag("dashboard_settings_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = CyanElectric,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -156,7 +173,7 @@ fun DashboardScreen(
                         .fillMaxWidth()
                         .background(
                             Brush.horizontalGradient(
-                                colors = listOf(Color(0x2200E5FF), Color(0x10131C31))
+                                colors = listOf(CyanElectric.copy(alpha = 0.15f), SpaceSurfaceLight.copy(alpha = 0.5f))
                             )
                         )
                         .padding(16.dp)
@@ -170,7 +187,7 @@ fun DashboardScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = Color(0x3300E5FF),
+                                    color = CyanElectric.copy(alpha = 0.18f),
                                     modifier = Modifier.size(28.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
@@ -211,9 +228,83 @@ fun DashboardScreen(
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Text("Launch", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("Launch", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
+                }
+            }
+        }
+
+        // Settings & Accessibility Quick Access Card
+        item {
+            SciFiCard(
+                onClick = onNavigateToSettings,
+                borderColor = CyanElectric.copy(alpha = 0.4f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("dashboard_settings_card")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = CyanElectric.copy(alpha = 0.18f),
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Settings",
+                                    tint = CyanElectric,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Settings & Accessibility",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = CyanElectric.copy(alpha = 0.18f)
+                                ) {
+                                    Text(
+                                        text = "NEW",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = CyanElectric,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Turn off notifications, Material You theming & high contrast",
+                                fontSize = 11.sp,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = CyanElectric,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }

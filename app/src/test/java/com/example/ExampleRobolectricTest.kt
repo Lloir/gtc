@@ -123,4 +123,31 @@ class ExampleRobolectricTest {
         }
         assertEquals(0, nonExistent.size)
     }
+
+    @Test
+    fun `verify notification settings and accessibility toggles persist in preferences`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val prefs = context.getSharedPreferences("galactic_tycoons_prefs", Context.MODE_PRIVATE)
+
+        // Turn off notifications
+        prefs.edit().putBoolean("pref_notifications_enabled", false).apply()
+        assertFalse(prefs.getBoolean("pref_notifications_enabled", true))
+
+        // Set Material You dynamic color
+        prefs.edit().putBoolean("pref_use_dynamic_color", true).apply()
+        assertTrue(prefs.getBoolean("pref_use_dynamic_color", false))
+
+        // Set theme mode
+        prefs.edit().putString("pref_theme_mode", "LIGHT").apply()
+        assertEquals("LIGHT", prefs.getString("pref_theme_mode", "DARK"))
+
+        // Set accessibility options
+        prefs.edit().putBoolean("pref_high_contrast", true).apply()
+        prefs.edit().putBoolean("pref_large_text", true).apply()
+        prefs.edit().putBoolean("pref_reduced_motion", true).apply()
+
+        assertTrue(prefs.getBoolean("pref_high_contrast", false))
+        assertTrue(prefs.getBoolean("pref_large_text", false))
+        assertTrue(prefs.getBoolean("pref_reduced_motion", false))
+    }
 }

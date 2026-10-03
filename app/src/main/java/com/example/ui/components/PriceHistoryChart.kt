@@ -122,6 +122,11 @@ fun PriceHistoryChart(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Canvas Line Chart
+            val chartLineColor = CyanElectric
+            val chartGlowColor = CyanGlow
+            val isDarkTheme = com.example.ui.theme.LocalIsDarkTheme.current
+            val gridLineColor = if (isDarkTheme) Color(0x18FFFFFF) else Color(0x12000000)
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,7 +147,7 @@ fun PriceHistoryChart(
                     for (i in 0..lineCount) {
                         val y = chartHeight * (i.toFloat() / lineCount)
                         drawLine(
-                            color = Color(0x18FFFFFF),
+                            color = gridLineColor,
                             start = Offset(0f, y),
                             end = Offset(w, y),
                             strokeWidth = 1f
@@ -152,7 +157,7 @@ fun PriceHistoryChart(
                     if (pricesDollars.size < 2) {
                         val y = chartHeight / 2
                         drawLine(
-                            color = CyanElectric,
+                            color = chartLineColor,
                             start = Offset(0f, y),
                             end = Offset(w, y),
                             strokeWidth = 3f,
@@ -180,8 +185,8 @@ fun PriceHistoryChart(
                         path = fillPath,
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                CyanElectric.copy(alpha = 0.35f),
-                                CyanElectric.copy(alpha = 0.0f)
+                                chartLineColor.copy(alpha = 0.35f),
+                                chartLineColor.copy(alpha = 0.0f)
                             ),
                             startY = 0f,
                             endY = chartHeight
@@ -201,13 +206,13 @@ fun PriceHistoryChart(
 
                     drawPath(
                         path = strokePath,
-                        color = CyanElectric,
+                        color = chartLineColor,
                         style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
                     )
 
                     // Draw dot at latest point
                     drawCircle(
-                        color = CyanGlow,
+                        color = chartGlowColor,
                         radius = 4.dp.toPx(),
                         center = points.last()
                     )

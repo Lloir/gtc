@@ -141,6 +141,73 @@ class GalacticTycoonsViewModel(application: Application) : AndroidViewModel(appl
     private val _isDesktopMode = MutableStateFlow(false)
     val isDesktopMode: StateFlow<Boolean> = _isDesktopMode.asStateFlow()
 
+    // Notification Settings
+    private val _notificationsEnabled = MutableStateFlow(sharedPrefs.getBoolean("pref_notifications_enabled", true))
+    val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled.asStateFlow()
+
+    private val _tradeNotificationsEnabled = MutableStateFlow(sharedPrefs.getBoolean("pref_trade_notifications", true))
+    val tradeNotificationsEnabled: StateFlow<Boolean> = _tradeNotificationsEnabled.asStateFlow()
+
+    private val _fleetNotificationsEnabled = MutableStateFlow(sharedPrefs.getBoolean("pref_fleet_notifications", true))
+    val fleetNotificationsEnabled: StateFlow<Boolean> = _fleetNotificationsEnabled.asStateFlow()
+
+    // Android 12+ Material You Dynamic Color & Theme Modes
+    private val _useDynamicColor = MutableStateFlow(sharedPrefs.getBoolean("pref_use_dynamic_color", false))
+    val useDynamicColor: StateFlow<Boolean> = _useDynamicColor.asStateFlow()
+
+    private val _themeMode = MutableStateFlow(sharedPrefs.getString("pref_theme_mode", "DARK") ?: "DARK")
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
+    // Accessibility Options
+    private val _highContrastEnabled = MutableStateFlow(sharedPrefs.getBoolean("pref_high_contrast", false))
+    val highContrastEnabled: StateFlow<Boolean> = _highContrastEnabled.asStateFlow()
+
+    private val _largeTextEnabled = MutableStateFlow(sharedPrefs.getBoolean("pref_large_text", false))
+    val largeTextEnabled: StateFlow<Boolean> = _largeTextEnabled.asStateFlow()
+
+    private val _reducedMotionEnabled = MutableStateFlow(sharedPrefs.getBoolean("pref_reduced_motion", false))
+    val reducedMotionEnabled: StateFlow<Boolean> = _reducedMotionEnabled.asStateFlow()
+
+    fun setNotificationsEnabled(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("pref_notifications_enabled", enabled).apply()
+        _notificationsEnabled.value = enabled
+    }
+
+    fun setTradeNotificationsEnabled(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("pref_trade_notifications", enabled).apply()
+        _tradeNotificationsEnabled.value = enabled
+    }
+
+    fun setFleetNotificationsEnabled(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("pref_fleet_notifications", enabled).apply()
+        _fleetNotificationsEnabled.value = enabled
+    }
+
+    fun setUseDynamicColor(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("pref_use_dynamic_color", enabled).apply()
+        _useDynamicColor.value = enabled
+    }
+
+    fun setThemeMode(mode: String) {
+        sharedPrefs.edit().putString("pref_theme_mode", mode).apply()
+        _themeMode.value = mode
+    }
+
+    fun setHighContrastEnabled(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("pref_high_contrast", enabled).apply()
+        _highContrastEnabled.value = enabled
+    }
+
+    fun setLargeTextEnabled(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("pref_large_text", enabled).apply()
+        _largeTextEnabled.value = enabled
+    }
+
+    fun setReducedMotionEnabled(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("pref_reduced_motion", enabled).apply()
+        _reducedMotionEnabled.value = enabled
+    }
+
     init {
         loadOfflineCachedPrices()
         fetchLiveExchangePrices()

@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -44,6 +46,7 @@ import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.ExchangeMarketItemsScreen
 import com.example.ui.screens.FleetLogisticsScreen
 import com.example.ui.screens.IndustryCalculatorScreen
+import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.TradeAlertsScreen
 import com.example.ui.screens.WebGameScreen
 import com.example.ui.theme.CyanElectric
@@ -55,12 +58,13 @@ import com.example.ui.theme.TextSecondary
 import com.example.viewmodel.GalacticTycoonsViewModel
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
-    object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Dashboard)
+    object Dashboard : Screen("dashboard", "Deck", Icons.Default.Dashboard)
     object Market : Screen("market", "Market", Icons.Default.CurrencyExchange)
     object Fleet : Screen("fleet", "Fleet", Icons.Default.LocalShipping)
-    object Game : Screen("game", "Game Client", Icons.Default.Public)
+    object Game : Screen("game", "Game", Icons.Default.Public)
     object Alerts : Screen("alerts", "Alerts", Icons.Default.NotificationsActive)
     object Calculator : Screen("calculator", "Calculator", Icons.Default.CurrencyExchange)
+    object Settings : Screen("settings", "Settings", Icons.Default.Settings)
 }
 
 class MainActivity : ComponentActivity() {
@@ -68,8 +72,22 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            GalacticTycoonsTheme {
-                GalacticTycoonsAppNavigation()
+            val viewModel: GalacticTycoonsViewModel = viewModel()
+            val themeMode by viewModel.themeMode.collectAsState()
+            val useDynamicColor by viewModel.useDynamicColor.collectAsState()
+            val isSystemDark = isSystemInDarkTheme()
+
+            val darkTheme = when (themeMode) {
+                "LIGHT" -> false
+                "SYSTEM" -> isSystemDark
+                else -> true
+            }
+
+            GalacticTycoonsTheme(
+                darkTheme = darkTheme,
+                dynamicColor = useDynamicColor
+            ) {
+                GalacticTycoonsAppNavigation(viewModel = viewModel)
             }
         }
     }
@@ -81,6 +99,7 @@ fun GalacticTycoonsAppNavigation(
 ) {
     val navController = rememberNavController()
     val unreadNotifs by viewModel.unreadNotifCount.collectAsState()
+    var isGameFullscreen by remember { mutableStateOf(false) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Dashboard.route
@@ -90,77 +109,80 @@ fun GalacticTycoonsAppNavigation(
         Screen.Market,
         Screen.Fleet,
         Screen.Game,
-        Screen.Alerts
+        Screen.Alerts,
+        Screen.Settings
     )
 
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(
-                containerColor = SpaceCardBg,
-                contentColor = CyanElectric,
-                tonalElevation = 8.dp,
-                modifier = Modifier.testTag("main_bottom_nav")
-            ) {
-                navigationItems.forEach { screen ->
-                    val isSelected = currentRoute == screen.route
+            if (!isGameFullscreen || currentRoute != Screen.Game.route) {
+                NavigationBar(
+                    containerColor = SpaceCardBg,
+                    contentColor = CyanElectric,
+                    tonalElevation = 8.dp,
+                    modifier = Modifier.testTag("main_bottom_nav")
+                ) {
+                    navigationItems.forEach { screen ->
+                        val isSelected = currentRoute == screen.route
 
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            if (currentRoute != screen.route) {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        },
-                        icon = {
-                            if (screen == Screen.Alerts && unreadNotifs > 0) {
-                                BadgedBox(
-                                    badge = {
-                                        Badge(
-                                            containerColor = LossRed,
-                                            contentColor = Color.White
-                                        ) {
-                                            Text("$unreadNotifs", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        NavigationBarItem(
+                            selected = isSelected,
+                            onClick = {
+                                if (currentRoute != screen.route) {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
                                         }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                ) {
+                                }
+                            },
+                            icon = {
+                                if (screen == Screen.Alerts && unreadNotifs > 0) {
+                                    BadgedBox(
+                                        badge = {
+                                            Badge(
+                                                containerColor = LossRed,
+                                                contentColor = Color.White
+                                            ) {
+                                                Text("$unreadNotifs", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = screen.icon,
+                                            contentDescription = screen.title,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                } else {
                                     Icon(
                                         imageVector = screen.icon,
                                         contentDescription = screen.title,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
-                            } else {
-                                Icon(
-                                    imageVector = screen.icon,
-                                    contentDescription = screen.title,
-                                    modifier = Modifier.size(22.dp)
+                            },
+                            label = {
+                                Text(
+                                    text = screen.title,
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
-                            }
-                        },
-                        label = {
-                            Text(
-                                text = screen.title,
-                                fontSize = 10.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = CyanElectric,
-                            selectedTextColor = CyanElectric,
-                            indicatorColor = Color(0x3300E5FF),
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextMuted
-                        ),
-                        modifier = Modifier.testTag("nav_item_${screen.route}")
-                    )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = CyanElectric,
+                                selectedTextColor = CyanElectric,
+                                indicatorColor = Color(0x3300E5FF),
+                                unselectedIconColor = TextSecondary,
+                                unselectedTextColor = TextMuted
+                            ),
+                            modifier = Modifier.testTag("nav_item_${screen.route}")
+                        )
+                    }
                 }
             }
         }
@@ -170,7 +192,10 @@ fun GalacticTycoonsAppNavigation(
             startDestination = Screen.Dashboard.route,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(
+                    top = if (currentRoute == Screen.Game.route) 0.dp else innerPadding.calculateTopPadding(),
+                    bottom = if (isGameFullscreen && currentRoute == Screen.Game.route) 0.dp else innerPadding.calculateBottomPadding()
+                )
         ) {
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
@@ -209,6 +234,11 @@ fun GalacticTycoonsAppNavigation(
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -235,11 +265,25 @@ fun GalacticTycoonsAppNavigation(
             }
 
             composable(Screen.Alerts.route) {
-                TradeAlertsScreen(viewModel = viewModel)
+                TradeAlertsScreen(
+                    viewModel = viewModel,
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
 
             composable(Screen.Calculator.route) {
                 IndustryCalculatorScreen(viewModel = viewModel)
+            }
+
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
     }

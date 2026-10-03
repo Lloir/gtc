@@ -1,9 +1,7 @@
 package com.example.ui.screens
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.graphics.Bitmap
-import android.net.Uri
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
@@ -13,10 +11,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,20 +23,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.DesktopWindows
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.OpenInBrowser
-import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -66,21 +54,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.ui.theme.CyanElectric
-import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.LossRed
 import com.example.ui.theme.SpaceCardBg
 import com.example.ui.theme.SpaceCardBorder
 import com.example.ui.theme.SpaceDark
-import com.example.ui.theme.SpaceSurfaceLight
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -90,9 +78,10 @@ import com.example.viewmodel.GalacticTycoonsViewModel
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun WebGameScreen(
-    viewModel: GalacticTycoonsViewModel
+    viewModel: GalacticTycoonsViewModel,
+    isFullscreen: Boolean = false,
+    onToggleFullscreen: (() -> Unit)? = null
 ) {
-    val context = LocalContext.current
     val webGameUrl by viewModel.webGameUrl.collectAsState()
     val isDesktopMode by viewModel.isDesktopMode.collectAsState()
     val tycoonNotes by viewModel.tycoonNotes.collectAsState()
@@ -102,272 +91,133 @@ fun WebGameScreen(
     var isLoading by remember { mutableStateOf(false) }
     var hasError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    var isFullscreen by remember { mutableStateOf(false) }
     var showNotesSheet by remember { mutableStateOf(false) }
     val notesSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Handle back button inside WebView
+    // Auto-reload when app is minimized (paused/stopped) and brought back to foreground (resumed)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var wasBackgrounded by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> {
+                    wasBackgrounded = true
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    if (wasBackgrounded) {
+                        wasBackgrounded = false
+                        webViewInstance?.reload()
+                    }
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Handle device back gesture inside WebView
     BackHandler(enabled = webViewInstance?.canGoBack() == true) {
         webViewInstance?.goBack()
     }
 
-    Column(
+    // Edge-to-edge game container with zero blank space at the top
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(SpaceDark)
     ) {
-        // Compact Game Control Toolbar
-        AnimatedVisibility(visible = !isFullscreen) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(SpaceCardBg)
-                    .border(1.dp, SpaceCardBorder)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Left navigation buttons
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = { webViewInstance?.goBack() },
-                            enabled = webViewInstance?.canGoBack() == true,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = if (webViewInstance?.canGoBack() == true) CyanElectric else TextMuted,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = { webViewInstance?.goForward() },
-                            enabled = webViewInstance?.canGoForward() == true,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = "Forward",
-                                tint = if (webViewInstance?.canGoForward() == true) CyanElectric else TextMuted,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                hasError = false
-                                webViewInstance?.reload()
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "Reload",
-                                tint = CyanElectric,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                hasError = false
-                                webViewInstance?.loadUrl("https://g2.galactictycoons.com/")
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Home,
-                                contentDescription = "Home",
-                                tint = GoldAccent,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    // Center URL pill
-                    Surface(
-                        color = SpaceSurfaceLight,
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 6.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Security,
-                                contentDescription = null,
-                                tint = CyanElectric,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "g2.galactictycoons.com",
-                                color = TextPrimary,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1
-                            )
-                        }
-                    }
-
-                    // Right utility actions
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Desktop / Mobile Mode Toggle
-                        IconButton(
-                            onClick = {
-                                val newMode = !isDesktopMode
-                                viewModel.setDesktopMode(newMode)
-                                webViewInstance?.let { wv ->
-                                    val desktopUA =
-                                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                                    val defaultUA = WebSettings.getDefaultUserAgent(context)
-                                    wv.settings.userAgentString = if (newMode) desktopUA else defaultUA
-                                    wv.reload()
-                                }
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isDesktopMode) Icons.Default.PhoneAndroid else Icons.Default.DesktopWindows,
-                                contentDescription = "Toggle Viewport",
-                                tint = if (isDesktopMode) GoldAccent else TextSecondary,
-                                modifier = Modifier.size(17.dp)
-                            )
-                        }
-
-                        // Tycoon Notes Overlay
-                        IconButton(
-                            onClick = { showNotesSheet = true },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.EditNote,
-                                contentDescription = "Quick Notes",
-                                tint = CyanElectric,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        // Fullscreen
-                        IconButton(
-                            onClick = { isFullscreen = true },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Fullscreen,
-                                contentDescription = "Fullscreen",
-                                tint = TextPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        // Open External
-                        IconButton(
-                            onClick = {
-                                val currentUrl = webViewInstance?.url ?: "https://g2.galactictycoons.com/"
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentUrl))
-                                context.startActivity(intent)
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.OpenInBrowser,
-                                contentDescription = "Open in Chrome",
-                                tint = TextSecondary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Quick Navigation Shortcuts
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    val shortcuts = listOf(
-                        "Overview" to "https://g2.galactictycoons.com/",
-                        "Exchange Market" to "https://g2.galactictycoons.com/",
-                        "Logistics Fleet" to "https://g2.galactictycoons.com/",
-                        "Planetary Bases" to "https://g2.galactictycoons.com/",
-                        "Guild & Alliance" to "https://g2.galactictycoons.com/"
+        // Fullscreen WebView
+        AndroidView(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("galactic_webview"),
+            factory = { ctx ->
+                WebView(ctx).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
                     )
 
-                    shortcuts.forEach { (label, url) ->
-                        Surface(
-                            color = SpaceSurfaceLight,
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.clip(RoundedCornerShape(6.dp))
+                    // Enable cookies & storage for persistent player login session
+                    val cookieManager = CookieManager.getInstance()
+                    cookieManager.setAcceptCookie(true)
+                    cookieManager.setAcceptThirdPartyCookies(this, true)
+
+                    // Performance & game-optimized viewport settings
+                    settings.apply {
+                        javaScriptEnabled = true
+                        domStorageEnabled = true
+                        databaseEnabled = true
+                        useWideViewPort = true
+                        loadWithOverviewMode = true
+                        setSupportZoom(true)
+                        builtInZoomControls = true
+                        displayZoomControls = false
+                        cacheMode = WebSettings.LOAD_DEFAULT
+                        mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                        mediaPlaybackRequiresUserGesture = false
+                    }
+
+                    webViewClient = object : WebViewClient() {
+                        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                            isLoading = true
+                            hasError = false
+                        }
+
+                        override fun onPageFinished(view: WebView?, url: String?) {
+                            isLoading = false
+                        }
+
+                        override fun onReceivedError(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                            error: WebResourceError?
                         ) {
-                            Text(
-                                text = label,
-                                color = TextPrimary,
-                                fontSize = 11.sp,
-                                modifier = Modifier
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                            if (request?.isForMainFrame == true) {
+                                hasError = true
+                                errorMessage = error?.description?.toString() ?: "Connection failed"
+                            }
                         }
                     }
-                }
-            }
-        }
 
-        // Floating exit fullscreen button when fullscreen
-        if (isFullscreen) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                contentAlignment = Alignment.TopEnd
-            ) {
-                Surface(
-                    color = Color(0xCC090D16),
-                    shape = RoundedCornerShape(20.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CyanElectric),
-                    modifier = Modifier.padding(top = 28.dp)
-                ) {
-                    IconButton(
-                        onClick = { isFullscreen = false },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.FullscreenExit,
-                            contentDescription = "Exit Fullscreen",
-                            tint = CyanElectric,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                            webProgress = newProgress / 100f
+                        }
                     }
-                }
-            }
-        }
 
-        // Web Loading Progress
+                    loadUrl(webGameUrl)
+                    webViewInstance = this
+                }
+            },
+            update = { wv ->
+                webViewInstance = wv
+            }
+        )
+
+        // Thin loading indicator flush with top edge
         if (isLoading && webProgress < 1.0f) {
             LinearProgressIndicator(
                 progress = { webProgress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp),
+                    .height(2.dp)
+                    .align(Alignment.TopCenter),
                 color = CyanElectric,
-                trackColor = SpaceCardBg
+                trackColor = Color.Transparent
             )
         }
 
-        // WebView or Error State
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (hasError) {
+        // Connection Error Recovery View
+        if (hasError) {
+            Surface(
+                color = SpaceDark,
+                modifier = Modifier.fillMaxSize()
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -393,7 +243,7 @@ fun WebGameScreen(
                         text = "Unable to connect to https://g2.galactictycoons.com/. Please verify your internet connection.",
                         color = TextSecondary,
                         fontSize = 12.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
@@ -407,75 +257,55 @@ fun WebGameScreen(
                     }
                 }
             }
+        }
 
-            AndroidView(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("galactic_webview"),
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
+        // Unobtrusive floating HUD overlay in the top-right corner
+        // (Does NOT push the game down or cause any blank space)
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Surface(
+                color = Color(0xB30B101D),
+                shape = RoundedCornerShape(18.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x3300E5FF))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Quick Notes drawer button
+                    IconButton(
+                        onClick = { showNotesSheet = true },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EditNote,
+                            contentDescription = "Quick Notes",
+                            tint = CyanElectric,
+                            modifier = Modifier.size(18.dp)
                         )
-
-                        // Enable cookies
-                        val cookieManager = CookieManager.getInstance()
-                        cookieManager.setAcceptCookie(true)
-                        cookieManager.setAcceptThirdPartyCookies(this, true)
-
-                        // Game-optimized settings
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            databaseEnabled = true
-                            useWideViewPort = true
-                            loadWithOverviewMode = true
-                            setSupportZoom(true)
-                            builtInZoomControls = true
-                            displayZoomControls = false
-                            cacheMode = WebSettings.LOAD_DEFAULT
-                            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                            mediaPlaybackRequiresUserGesture = false
-                        }
-
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                                isLoading = true
-                                hasError = false
-                            }
-
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                isLoading = false
-                            }
-
-                            override fun onReceivedError(
-                                view: WebView?,
-                                request: WebResourceRequest?,
-                                error: WebResourceError?
-                            ) {
-                                if (request?.isForMainFrame == true) {
-                                    hasError = true
-                                    errorMessage = error?.description?.toString() ?: "Connection failed"
-                                }
-                            }
-                        }
-
-                        webChromeClient = object : WebChromeClient() {
-                            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                                webProgress = newProgress / 100f
-                            }
-                        }
-
-                        loadUrl(webGameUrl)
-                        webViewInstance = this
                     }
-                },
-                update = { wv ->
-                    // Keep instance reference
-                    webViewInstance = wv
+
+                    // Fullscreen toggle button
+                    if (onToggleFullscreen != null) {
+                        IconButton(
+                            onClick = onToggleFullscreen,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                                contentDescription = if (isFullscreen) "Exit Fullscreen" else "Fullscreen",
+                                tint = CyanElectric,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
-            )
+            }
         }
     }
 
@@ -608,7 +438,7 @@ fun TycoonQuickNotesContent(
                     }
                     IconButton(onClick = { onDeleteNote(note.id) }, modifier = Modifier.size(24.dp)) {
                         Icon(
-                            imageVector = Icons.Default.Warning,
+                            imageVector = Icons.Default.Delete,
                             contentDescription = "Delete",
                             tint = LossRed,
                             modifier = Modifier.size(16.dp)
